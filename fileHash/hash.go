@@ -8,7 +8,12 @@ import (
 	"math"
 	"os"
 	fp "path/filepath"
+	"runtime"
+	"sync"
 )
+
+var wg = sync.WaitGroup{}
+var goNum = runtime.NumCPU()
 
 type FilesHash struct {
 	Files           []string
@@ -16,56 +21,61 @@ type FilesHash struct {
 	FilesSHA256     []string
 	FilesDumplicate []bool
 	FileSelected    []string
+	mixHash         []string
 }
 
 func NewFilesHash(path string, sameDir, mixMode bool) *FilesHash {
 	maps := make(map[string]int)
+	c := make(chan struct{}, goNum)
+	defer close(c)
 	filesHash := new(FilesHash)
-	filesHash.Files = filesHash.getAllFiles(path)
+	files, ch := filesHash.getAllFiles(path)
+	filesHash.Files = files
 	fileNums := len(filesHash.Files)
-	hashList := make([]string, fileNums)
-	md5List := make([]string, fileNums)
-	sha256List := make([]string, fileNums)
+	filesHash.mixHash = make([]string, fileNums)
+	filesHash.FilesMD5 = make([]string, fileNums)
+	filesHash.FilesSHA256 = make([]string, fileNums)
+	res := make(chan [3]string, fileNums)
 	boolList := make([]bool, fileNums)
 	var fileSelected []string
-	var hash string
-	for idx, file := range filesHash.Files {
-		md5Value, sha256Value, dir := filesHash.computeFileHash(file)
-		if mixMode {
-			hash = md5Value + sha256Value
-		} else {
-			hash = md5Value
-		}
-		if sameDir {
-			hash = hash + dir
-		}
-		hashList[idx] = hash
-		md5List[idx] = md5Value
-		sha256List[idx] = sha256Value
-		_, in := maps[hash]
+	for i := 0; i < fileNums; i++ {
+		wg.Add(1)
+		c <- struct{}{}
+		go filesHash.computeFileHash(ch, c, sameDir, mixMode, res)
+	}
+	wg.Wait()
+	for idx := 0; idx < fileNums; idx++ {
+		hashs := <-res
+		filesHash.mixHash[idx] = hashs[0]
+		filesHash.FilesMD5[idx] = hashs[1]
+		filesHash.FilesSHA256[idx] = hashs[2]
+		_, in := maps[hashs[0]]
 		if !in {
-			maps[hash] = 0
+			maps[hashs[0]] = 0
 		} else {
-			maps[hash] += 1
-			fileSelected = append(fileSelected, file)
+			maps[hashs[0]] += 1
+			fileSelected = append(fileSelected, filesHash.Files[idx])
 		}
 	}
 	for idx := 0; idx < fileNums; idx++ {
-		if maps[hashList[idx]] == 0 {
+		mixHash := filesHash.mixHash[idx]
+		fmt.Println(mixHash)
+		fmt.Println(maps[mixHash])
+		if maps[mixHash] == 0 {
 			boolList[idx] = false
 		} else {
 			boolList[idx] = true
 		}
 	}
-	filesHash.FilesMD5 = md5List
-	filesHash.FilesSHA256 = sha256List
 	filesHash.FilesDumplicate = boolList
 	filesHash.FileSelected = fileSelected
+	close(ch)
 	return filesHash
 }
 
-func (f *FilesHash) computeFileHash(filePath string) (string, string, string) {
+func (f *FilesHash) computeFileHash(ch chan string, c chan struct{}, sameDir, mixMode bool, res chan [3]string) {
 	const filechunk = 4096 * 1024
+	filePath := <-ch
 	dir, _ := fp.Split(filePath)
 	file, err := os.Open(filePath)
 	if err != nil {
@@ -77,6 +87,7 @@ func (f *FilesHash) computeFileHash(filePath string) (string, string, string) {
 	blocks := uint64(math.Ceil(float64(filesize) / float64(filechunk)))
 	hashMD5 := md5.New()
 	hashSHA256 := sha256.New()
+	var hash string
 	for i := uint64(0); i < blocks; i++ {
 		blocksize := int(math.Min(filechunk, float64(filesize-int64(i*filechunk))))
 		buf := make([]byte, blocksize)
@@ -84,20 +95,41 @@ func (f *FilesHash) computeFileHash(filePath string) (string, string, string) {
 		io.WriteString(hashMD5, string(buf))
 		io.WriteString(hashSHA256, string(buf))
 	}
-	return fmt.Sprintf("%x", hashMD5.Sum(nil)), fmt.Sprintf("%x", hashSHA256.Sum(nil)), dir
+	md5Value := fmt.Sprintf("%x", hashMD5.Sum(nil))
+	sha256Value := fmt.Sprintf("%x", hashSHA256.Sum(nil))
+	if mixMode {
+		hash = md5Value + sha256Value
+	} else {
+		hash = md5Value
+	}
+	if sameDir {
+		hash = hash + dir
+	}
+	res <- [3]string{hash, md5Value, sha256Value}
+	wg.Done()
+	<-c
 }
 
-func (f *FilesHash) getAllFiles(path string) []string {
+func (f *FilesHash) getAllFiles(path string) ([]string, chan string) {
 	var files []string
-	err := fp.Walk(path, func(path string, info os.FileInfo, err error) error {
-		s, e := os.Stat(path)
-		if e == nil && !s.IsDir() {
-			files = append(files, path)
-		}
-		return nil
-	})
+	err := fp.Walk(
+		path,
+		func(p string, info os.FileInfo, err error) error {
+			s, e := os.Stat(p)
+			if e == nil && !s.IsDir() {
+				files = append(files, p)
+			}
+			return nil
+		},
+	)
 	if err != nil {
 		panic(err)
 	}
-	return files
+	num := len(files)
+	ch := make(chan string, num)
+	for _, file := range files {
+		fmt.Println(file)
+		ch <- file
+	}
+	return files, ch
 }
