@@ -36,6 +36,7 @@ func NewFilesHash(path string, sameDir, mixMode bool) *FilesHash {
 	filesHash.FilesMD5 = make([]string, fileNums)
 	filesHash.FilesSHA256 = make([]string, fileNums)
 	res := make(chan [3]string, fileNums)
+	defer close(res)
 	boolList := make([]bool, fileNums)
 	var fileSelected []string
 	for i := 0; i < fileNums; i++ {
