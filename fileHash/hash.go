@@ -18,7 +18,7 @@ type FilesHash struct {
 	FileSelected    []string
 }
 
-func NewFilesHash(path string, sameDir bool) *FilesHash {
+func NewFilesHash(path string, sameDir, mixMode bool) *FilesHash {
 	maps := make(map[string]int)
 	filesHash := new(FilesHash)
 	filesHash.Files = filesHash.getAllFiles(path)
@@ -31,10 +31,13 @@ func NewFilesHash(path string, sameDir bool) *FilesHash {
 	var hash string
 	for idx, file := range filesHash.Files {
 		md5Value, sha256Value, dir := filesHash.computeFileHash(file)
-		if sameDir {
-			hash = md5Value + sha256Value + dir
-		} else {
+		if mixMode {
 			hash = md5Value + sha256Value
+		} else {
+			hash = md5Value
+		}
+		if sameDir {
+			hash = hash + dir
 		}
 		hashList[idx] = hash
 		md5List[idx] = md5Value

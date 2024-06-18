@@ -30,6 +30,7 @@ type MainForm struct {
 	button       *vcl.TButton
 	sameDir      bool
 	showHidden   bool
+	mixMode      bool
 	fileSelected []string
 }
 
@@ -49,8 +50,11 @@ func (m *MainForm) initComponents(parent vcl.IWinControl) {
 	cbDir.SetOnClick(m.clickSameDir)
 	cbHid := NewCheckBox(parent, "显示隐藏文件", 190, 0, 20, 20)
 	cbHid.SetOnClick(m.clickShowHidden)
+	cbMix := NewCheckBox(parent, "混合模式", 295, 0, 20, 20)
+	cbMix.SetOnClick(m.clickMixMode)
 	m.onTop = cbOnTop
 	m.sameDir = true
+	m.showHidden = false
 	m.showHidden = false
 	pathEdit := vcl.NewEdit(parent)
 	pathEdit.SetParent(m)
@@ -118,7 +122,7 @@ func (m *MainForm) clickButton(sender vcl.IObject) {
 		}
 	} else if bt.Caption() == "分析" {
 		m.pathEdit.GetTextBuf(&path, 2147483647)
-		fh := fileHash.NewFilesHash(path, m.sameDir)
+		fh := fileHash.NewFilesHash(path, m.sameDir, m.mixMode)
 		m.fileSelected = fh.FileSelected
 		m.button.SetCaption("删除重复文件")
 		fileNums := len(fh.Files)
@@ -146,5 +150,14 @@ func (m *MainForm) typedPathEdit(sender vcl.IObject, key *types.Char, shift type
 		m.button.SetCaption("选择目录")
 	} else {
 		m.button.SetCaption("分析")
+	}
+}
+
+func (m *MainForm) clickMixMode(sender vcl.IObject) {
+	cb := vcl.AsCheckBox(sender)
+	if cb.Checked() {
+		m.mixMode = true
+	} else {
+		m.mixMode = false
 	}
 }
