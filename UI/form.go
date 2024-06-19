@@ -9,8 +9,8 @@ import (
 	"rmDumplicate/fileHash"
 )
 
-var mapDumplicate =  map[bool]string{
-	true: "是",
+var mapDumplicate = map[bool]string{
+	true:  "是",
 	false: "否",
 }
 
@@ -122,16 +122,20 @@ func (m *MainForm) clickButton(sender vcl.IObject) {
 		}
 	} else if bt.Caption() == "分析" {
 		m.pathEdit.GetTextBuf(&path, 2147483647)
-		fh := fileHash.NewFilesHash(path, m.sameDir, m.mixMode)
-		m.fileSelected = fh.FileSelected
-		m.button.SetCaption("删除重复文件")
-		fileNums := len(fh.Files)
-		m.filesGrid.SetRowCount(int32(fileNums)+1)
-		for i:=1; i<=fileNums; i++ {
-			m.filesGrid.SetCells(0, int32(i), fh.Files[i-1])
-			m.filesGrid.SetCells(1, int32(i), fh.FilesMD5[i-1])
-			m.filesGrid.SetCells(2, int32(i), mapDumplicate[fh.FilesDumplicate[i-1]])
-		}
+		go func() {
+			fh := fileHash.NewFilesHash(path, m.sameDir, m.mixMode)
+			vcl.ThreadSync(func() {
+				m.fileSelected = fh.FileSelected
+				m.button.SetCaption("删除重复文件")
+				fileNums := len(fh.Files)
+				m.filesGrid.SetRowCount(int32(fileNums) + 1)
+				for i := 1; i <= fileNums; i++ {
+					m.filesGrid.SetCells(0, int32(i), fh.Files[i-1])
+					m.filesGrid.SetCells(1, int32(i), fh.FilesMD5[i-1])
+					m.filesGrid.SetCells(2, int32(i), mapDumplicate[fh.FilesDumplicate[i-1]])
+				}
+			})
+		}()
 	} else {
 		if len(m.fileSelected) != 0 {
 			for _, file := range m.fileSelected {

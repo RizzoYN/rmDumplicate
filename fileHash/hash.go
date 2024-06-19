@@ -21,7 +21,6 @@ type FilesHash struct {
 	FilesSHA256     []string
 	FilesDumplicate []bool
 	FileSelected    []string
-	FileNums        int
 	mixHash         []string
 }
 
@@ -32,7 +31,6 @@ func NewFilesHash(path string, sameDir, mixMode bool) *FilesHash {
 	filesHash := new(FilesHash)
 	files, ch, fileNums:= filesHash.getAllFiles(path)
 	filesHash.Files = files
-	filesHash.FileNums = fileNums
 	filesHash.mixHash = make([]string, fileNums)
 	filesHash.FilesMD5 = make([]string, fileNums)
 	filesHash.FilesSHA256 = make([]string, fileNums)
@@ -61,8 +59,6 @@ func NewFilesHash(path string, sameDir, mixMode bool) *FilesHash {
 	}
 	for idx := 0; idx < fileNums; idx++ {
 		mixHash := filesHash.mixHash[idx]
-		fmt.Println(mixHash)
-		fmt.Println(maps[mixHash])
 		if maps[mixHash] == 0 {
 			boolList[idx] = false
 		} else {
@@ -130,7 +126,6 @@ func (f *FilesHash) getAllFiles(path string) ([]string, chan string, int) {
 	num := len(files)
 	ch := make(chan string, num)
 	for _, file := range files {
-		fmt.Println(file)
 		ch <- file
 	}
 	return files, ch, num
