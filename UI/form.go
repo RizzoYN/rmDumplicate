@@ -2,6 +2,7 @@ package ui
 
 import (
 	"os"
+	"time"
 
 	"github.com/ying32/govcl/vcl"
 	"github.com/ying32/govcl/vcl/types"
@@ -12,6 +13,13 @@ import (
 var mapDumplicate = map[bool]string{
 	true:  "是",
 	false: "否",
+}
+var mapLoading = map[string]string{
+	"分析":  "◑",
+	"◑":  "◒",
+	"◒":  "◐",
+	"◐":  "◓",
+	"◓":  "◑",
 }
 
 func NewCheckBox(parent vcl.IWinControl, title string, x, y, w, h int32) *vcl.TCheckBox {
@@ -123,7 +131,6 @@ func (m *MainForm) clickButton(sender vcl.IObject) {
 	} else if bt.Caption() == "分析" {
 		m.pathEdit.GetTextBuf(&path, 2147483647)
 		bt.SetEnabled(false)
-		bt.SetCaption("分析中")
 		go func() {
 			fh := fileHash.NewFilesHash(path, m.sameDir, m.mixMode)
 			vcl.ThreadSync(func() {
@@ -139,6 +146,16 @@ func (m *MainForm) clickButton(sender vcl.IObject) {
 				}
 
 			})
+		}()
+		go func() {
+			for {
+				if bt.Enabled() {
+					break
+				} else {
+					bt.SetCaption(mapLoading[bt.Caption()])
+					time.Sleep(time.Millisecond * 80) 
+				}
+			}
 		}()
 	} else {
 		if len(m.fileSelected) != 0 {
