@@ -122,11 +122,14 @@ func (m *MainForm) clickButton(sender vcl.IObject) {
 		}
 	} else if bt.Caption() == "分析" {
 		m.pathEdit.GetTextBuf(&path, 2147483647)
+		bt.SetEnabled(false)
+		bt.SetCaption("分析中")
 		go func() {
 			fh := fileHash.NewFilesHash(path, m.sameDir, m.mixMode)
 			vcl.ThreadSync(func() {
 				m.fileSelected = fh.FileSelected
-				m.button.SetCaption("删除重复文件")
+				bt.SetCaption("删除重复文件")
+				bt.SetEnabled(true)
 				fileNums := len(fh.Files)
 				m.filesGrid.SetRowCount(int32(fileNums) + 1)
 				for i := 1; i <= fileNums; i++ {
@@ -134,6 +137,7 @@ func (m *MainForm) clickButton(sender vcl.IObject) {
 					m.filesGrid.SetCells(1, int32(i), fh.FilesMD5[i-1])
 					m.filesGrid.SetCells(2, int32(i), mapDumplicate[fh.FilesDumplicate[i-1]])
 				}
+
 			})
 		}()
 	} else {
