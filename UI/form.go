@@ -145,7 +145,6 @@ func (m *MainForm) clickButton(sender vcl.IObject) {
 					m.filesGrid.SetCells(1, int32(i), fh.FilesMD5[i-1])
 					m.filesGrid.SetCells(2, int32(i), mapDumplicate[fh.FilesDumplicate[i-1]])
 				}
-
 			})
 		}()
 		go func() {
