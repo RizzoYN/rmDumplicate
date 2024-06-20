@@ -152,7 +152,9 @@ func (m *MainForm) clickButton(sender vcl.IObject) {
 				if bt.Enabled() {
 					break
 				} else {
-					bt.SetCaption(mapLoading[bt.Caption()])
+					vcl.ThreadSync(func(){
+						bt.SetCaption(mapLoading[bt.Caption()])
+					 })
 					time.Sleep(time.Millisecond * 80) 
 				}
 			}
