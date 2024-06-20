@@ -71,6 +71,7 @@ func (m *MainForm) initComponents(parent vcl.IWinControl) {
 	filesGrid := vcl.NewStringGrid(parent)
 	filesGrid.SetParent(m)
 	filesGrid.SetBounds(20, 25, 1040, 560)
+	filesGrid.SetScrollBars(types.SsAutoVertical)
 	filesGrid.AutoAdjustColumns()
 	filesGrid.SetColCount(3)
 	filesGrid.SetColWidths(0, 680)
