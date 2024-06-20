@@ -34,7 +34,6 @@ type MainForm struct {
 	*vcl.TForm
 	pathEdit     *vcl.TEdit
 	filesGrid    *vcl.TStringGrid
-	onTop        *vcl.TCheckBox
 	button       *vcl.TButton
 	sameDir      bool
 	showHidden   bool
@@ -60,37 +59,33 @@ func (m *MainForm) initComponents(parent vcl.IWinControl) {
 	cbHid.SetOnClick(m.clickShowHidden)
 	cbMix := NewCheckBox(parent, "混合模式", 295, 0, 20, 20)
 	cbMix.SetOnClick(m.clickMixMode)
-	m.onTop = cbOnTop
 	m.sameDir = true
 	m.showHidden = false
 	m.showHidden = false
-	pathEdit := vcl.NewEdit(parent)
-	pathEdit.SetParent(m)
-	pathEdit.SetBounds(20, 600, 800, 26)
-	pathEdit.SetOnKeyUp(m.typedPathEdit)
-	filesGrid := vcl.NewStringGrid(parent)
-	filesGrid.SetParent(m)
-	filesGrid.SetBounds(20, 25, 1040, 560)
-	filesGrid.SetScrollBars(types.SsAutoVertical)
-	filesGrid.AutoAdjustColumns()
-	filesGrid.SetColCount(3)
-	filesGrid.SetColWidths(0, 680)
-	filesGrid.SetColWidths(1, 280)
-	filesGrid.SetColWidths(2, 60)
-	filesGrid.SetFixedCols(0)
-	filesGrid.SetRowCount(1)
-	filesGrid.SetPopupMenu(popupMenu)
-	filesGrid.SetCells(0, 0, "文件路径")
-	filesGrid.SetCells(1, 0, "文件MD5")
-	filesGrid.SetCells(2, 0, "是否重复")
-	bt := vcl.NewButton(parent)
-	bt.SetParent(parent)
-	bt.SetCaption("选择目录")
-	bt.SetBounds(830, 600, 230, 26)
-	bt.SetOnClick(m.clickButton)
-	m.pathEdit = pathEdit
-	m.filesGrid = filesGrid
-	m.button = bt
+	m.pathEdit = vcl.NewEdit(parent)
+	m.pathEdit.SetParent(m)
+	m.pathEdit.SetBounds(20, 600, 800, 26)
+	m.pathEdit.SetOnKeyUp(m.typedPathEdit)
+	m.filesGrid = vcl.NewStringGrid(parent)
+	m.filesGrid.SetParent(m)
+	m.filesGrid.SetBounds(20, 25, 1040, 560)
+	m.filesGrid.SetScrollBars(types.SsAutoVertical)
+	m.filesGrid.AutoAdjustColumns()
+	m.filesGrid.SetColCount(3)
+	m.filesGrid.SetColWidths(0, 680)
+	m.filesGrid.SetColWidths(1, 280)
+	m.filesGrid.SetColWidths(2, 60)
+	m.filesGrid.SetFixedCols(0)
+	m.filesGrid.SetRowCount(1)
+	m.filesGrid.SetPopupMenu(popupMenu)
+	m.filesGrid.SetCells(0, 0, "文件路径")
+	m.filesGrid.SetCells(1, 0, "文件MD5")
+	m.filesGrid.SetCells(2, 0, "是否重复")
+	m.button = vcl.NewButton(parent)
+	m.button.SetParent(parent)
+	m.button.SetCaption("选择目录")
+	m.button.SetBounds(830, 600, 230, 26)
+	m.button.SetOnClick(m.clickButton)
 }
 
 func (m *MainForm) clickOnTop(sender vcl.IObject) {
