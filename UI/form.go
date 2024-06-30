@@ -180,6 +180,7 @@ func (m *MainForm) clickButton(sender vcl.IObject) {
 		}
 		m.button.SetCaption("已完成 请选择目录")
 		m.pathEdit.SetTextBuf("")
+		// clear有问题
 		m.filesGrid.Clear()
 	}
 }

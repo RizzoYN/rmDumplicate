@@ -40,7 +40,6 @@ func NewFilesHash(path string, sameDir, mixMode bool) *FilesHash {
 	filesHash.FilesSHA256 = make([]string, fileNums)
 	res := make(chan [3]string, fileNums)
 	defer close(res)
-	boolList := make([]bool, fileNums)
 	var fileSelected []string
 	for i := 0; i < fileNums; i++ {
 		wg.Add(1)
@@ -61,15 +60,6 @@ func NewFilesHash(path string, sameDir, mixMode bool) *FilesHash {
 			fileSelected = append(fileSelected, filesHash.Files[idx])
 		}
 	}
-	for idx := 0; idx < fileNums; idx++ {
-		mixHash := filesHash.mixHash[idx]
-		if maps[mixHash] == 0 {
-			boolList[idx] = false
-		} else {
-			boolList[idx] = true
-		}
-	}
-	filesHash.FilesDumplicate = boolList
 	filesHash.FileSelected = fileSelected
 	close(ch)
 	filesHash.sort(fileNums)
@@ -164,6 +154,7 @@ func (f *FilesHash) sort(num int) {
 		hash := hashList[idx]
 		ix := slices.Index(list, hash)
 		list[ix] = ""
+		fmt.Println(ix)
 		fmt.Println(hash)
 		fmt.Println(f.Files[ix])
 		fmt.Println(f.FilesMD5[ix])
