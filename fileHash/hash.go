@@ -22,6 +22,7 @@ type FilesHash struct {
 	FilesDumplicate []bool
 	FileSelected    []string
 	mixHash         []string
+	ErrFlag         bool
 }
 
 func NewFilesHash(path string, sameDir, mixMode bool) *FilesHash {
@@ -29,6 +30,7 @@ func NewFilesHash(path string, sameDir, mixMode bool) *FilesHash {
 	c := make(chan struct{}, goNum)
 	defer close(c)
 	filesHash := new(FilesHash)
+	filesHash.ErrFlag = false
 	files, ch, fileNums:= filesHash.getAllFiles(path)
 	filesHash.Files = files
 	filesHash.mixHash = make([]string, fileNums)
@@ -77,7 +79,7 @@ func (f *FilesHash) computeFileHash(ch chan string, c chan struct{}, sameDir, mi
 	dir, _ := fp.Split(filePath)
 	file, err := os.Open(filePath)
 	if err != nil {
-		panic(err.Error())
+		f.ErrFlag = true
 	}
 	defer file.Close()
 	info, _ := file.Stat()
@@ -121,7 +123,7 @@ func (f *FilesHash) getAllFiles(path string) ([]string, chan string, int) {
 		},
 	)
 	if err != nil {
-		panic(err)
+		f.ErrFlag = true
 	}
 	num := len(files)
 	ch := make(chan string, num)

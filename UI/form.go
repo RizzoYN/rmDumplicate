@@ -39,6 +39,7 @@ type MainForm struct {
 	showHidden   bool
 	mixMode      bool
 	fileSelected []string
+	defaultPath  string
 }
 
 func (m *MainForm) OnFormCreate(sender vcl.IObject) {
@@ -55,10 +56,18 @@ func (m *MainForm) initComponents(parent vcl.IWinControl) {
 	cbOnTop.SetOnClick(m.clickOnTop)
 	cbDir := NewCheckBox(parent, "包含不同目录", 80, 0, 20, 20)
 	cbDir.SetOnClick(m.clickSameDir)
+	cbDir.SetHint("选中时不同路径下的文件如果具有相同的HASH值则计算为相同的文件")
+	cbDir.SetOnMouseEnter(func(sender vcl.IObject) {
+		vcl.AsButton(sender).ShowHint()
+	})
 	cbHid := NewCheckBox(parent, "显示隐藏文件", 190, 0, 20, 20)
 	cbHid.SetOnClick(m.clickShowHidden)
 	cbMix := NewCheckBox(parent, "混合模式", 295, 0, 20, 20)
 	cbMix.SetOnClick(m.clickMixMode)
+	cbMix.SetHint("计算文件HASH使用MD5算法，选中时计算文件HASH使用MD5与SHA256")
+	cbMix.SetOnMouseEnter(func(sender vcl.IObject) {
+		vcl.AsButton(sender).ShowHint()
+	})
 	m.sameDir = true
 	m.showHidden = false
 	m.showHidden = false
@@ -86,6 +95,7 @@ func (m *MainForm) initComponents(parent vcl.IWinControl) {
 	m.button.SetCaption("选择目录")
 	m.button.SetBounds(830, 600, 230, 26)
 	m.button.SetOnClick(m.clickButton)
+	m.defaultPath = `C\:`
 }
 
 func (m *MainForm) clickOnTop(sender vcl.IObject) {
@@ -118,29 +128,37 @@ func (m *MainForm) clickShowHidden(sender vcl.IObject) {
 func (m *MainForm) clickButton(sender vcl.IObject) {
 	bt := vcl.AsButton(sender)
 	var path string
-	if bt.Caption() == "选择目录" {
-		ok, fileChoose := vcl.SelectDirectory2("选择目录", `c:\`, m.showHidden)
+	if cap := bt.Caption(); cap == "选择目录" || cap == "已完成 请选择目录" {
+		ok, fileChoose := vcl.SelectDirectory2("选择目录", m.defaultPath, m.showHidden)
 		if ok {
 			bt.SetCaption("分析")
 			m.pathEdit.SetTextBuf(fileChoose)
+		} else {
+			vcl.MessageDlg("无效的路径", types.MtError)
 		}
 	} else if bt.Caption() == "分析" {
 		m.pathEdit.GetTextBuf(&path, 2147483647)
 		bt.SetEnabled(false)
 		go func() {
 			fh := fileHash.NewFilesHash(path, m.sameDir, m.mixMode)
-			vcl.ThreadSync(func() {
-				m.fileSelected = fh.FileSelected
-				bt.SetCaption("删除重复文件")
-				bt.SetEnabled(true)
-				fileNums := len(fh.Files)
-				m.filesGrid.SetRowCount(int32(fileNums) + 1)
-				for i := 1; i <= fileNums; i++ {
-					m.filesGrid.SetCells(0, int32(i), fh.Files[i-1])
-					m.filesGrid.SetCells(1, int32(i), fh.FilesMD5[i-1])
-					m.filesGrid.SetCells(2, int32(i), mapDumplicate[fh.FilesDumplicate[i-1]])
-				}
-			})
+			if fh.ErrFlag {
+				vcl.MessageDlg("文件异常", types.MtError)
+				bt.SetCaption("选择目录")
+				m.pathEdit.SetTextBuf("")
+			} else {
+				vcl.ThreadSync(func() {
+					m.fileSelected = fh.FileSelected
+					bt.SetCaption("删除重复文件")
+					bt.SetEnabled(true)
+					fileNums := len(fh.Files)
+					m.filesGrid.SetRowCount(int32(fileNums) + 1)
+					for i := 1; i <= fileNums; i++ {
+						m.filesGrid.SetCells(0, int32(i), fh.Files[i-1])
+						m.filesGrid.SetCells(1, int32(i), fh.FilesMD5[i-1])
+						m.filesGrid.SetCells(2, int32(i), mapDumplicate[fh.FilesDumplicate[i-1]])
+					}
+				})
+			}
 		}()
 		go func() {
 			for {
@@ -160,8 +178,9 @@ func (m *MainForm) clickButton(sender vcl.IObject) {
 				os.Remove(file)
 			}
 		}
-		m.button.SetCaption("选择目录")
+		m.button.SetCaption("已完成 请选择目录")
 		m.pathEdit.SetTextBuf("")
+		m.filesGrid.Clear()
 	}
 }
 
