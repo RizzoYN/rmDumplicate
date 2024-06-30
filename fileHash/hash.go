@@ -9,6 +9,8 @@ import (
 	"os"
 	fp "path/filepath"
 	"runtime"
+	"slices"
+	"sort"
 	"sync"
 )
 
@@ -31,7 +33,7 @@ func NewFilesHash(path string, sameDir, mixMode bool) *FilesHash {
 	defer close(c)
 	filesHash := new(FilesHash)
 	filesHash.ErrFlag = false
-	files, ch, fileNums:= filesHash.getAllFiles(path)
+	files, ch, fileNums := filesHash.getAllFiles(path)
 	filesHash.Files = files
 	filesHash.mixHash = make([]string, fileNums)
 	filesHash.FilesMD5 = make([]string, fileNums)
@@ -70,6 +72,7 @@ func NewFilesHash(path string, sameDir, mixMode bool) *FilesHash {
 	filesHash.FilesDumplicate = boolList
 	filesHash.FileSelected = fileSelected
 	close(ch)
+	filesHash.sort(fileNums)
 	return filesHash
 }
 
@@ -131,4 +134,53 @@ func (f *FilesHash) getAllFiles(path string) ([]string, chan string, int) {
 		ch <- file
 	}
 	return files, ch, num
+}
+
+// 排序存在问题
+func (f *FilesHash) sort(num int) {
+	hashList := make([]string, num)
+	list := make([]string, num)
+	copy(hashList, f.mixHash)
+	copy(list, f.mixHash)
+	sort.Strings(hashList)
+	maps := make(map[string]int)
+	for idx := 0; idx < num; idx++ {
+		hash := hashList[idx]
+		_, in := maps[hash]
+		if !in {
+			maps[hash] = 0
+		} else {
+			maps[hash] += 1
+		}
+	}
+	dFile := make([]string, 0)
+	uFile := make([]string, 0)
+	dMD5 := make([]string, 0)
+	uMD5 := make([]string, 0)
+	dSHA256 := make([]string, 0)
+	uSHA256 := make([]string, 0)
+	boolList := make([]bool, 0)
+	for idx := 0; idx < num; idx++ {
+		hash := hashList[idx]
+		ix := slices.Index(list, hash)
+		list[ix] = ""
+		fmt.Println(hash)
+		fmt.Println(f.Files[ix])
+		fmt.Println(f.FilesMD5[ix])
+		fmt.Println()
+		if maps[hash] > 0 {
+			dFile = append(dFile, f.Files[ix])
+			dMD5 = append(dMD5, f.FilesMD5[ix])
+			dSHA256 = append(dSHA256, f.FilesSHA256[ix])
+			boolList = append(boolList, true)
+		} else {
+			uFile = append(uFile, f.Files[ix])
+			uMD5 = append(uMD5, f.FilesMD5[ix])
+			uSHA256 = append(uSHA256, f.FilesSHA256[ix])
+		}
+	}
+	f.Files = append(dFile, uFile...)
+	f.FilesMD5 = append(dMD5, uMD5...)
+	f.FilesSHA256 = append(dSHA256, uSHA256...)
+	f.FilesDumplicate = append(boolList, make([]bool, num-len(dFile))...)
 }
